@@ -157,20 +157,84 @@ ConvertAllToPng() {
 #>>>>>>>>>>>>>>>>>>>>>>>一键生成App图标<<<<<<<<<<<<<<<<<<<<<<<<
 #自动生成icon
 CreateIconImage() {
+	iconRootFolder='IconFolder'
+	iconiOSFolder='IconFolder/AppIcon.appiconset'
 	#-Z 等比例按照给定尺寸缩放最长边。
 	#先删除旧的
-	rm -rf IconFolder
+	rm -rf ${iconRootFolder}
 	# 再创建CEB文件夹
-	mkdir IconFolder
+	mkdir ${iconRootFolder}
+	mkdir ${iconiOSFolder}
 
 	icon_image_name=$1
-	# icon图片尺寸数组
-	icon_array=(20 29 40 58 60 76 80 87 120 152 167 180 1024)
-	# 遍历
-	for item in "${icon_array[@]}";
-	do 
-		sips -Z "$item" "$icon_image_name" --out IconFolder/AppIcon_"$item"x"$item".png
+#	# icon图片尺寸数组
+# 	icon_array=(20 29 40 58 60 76 80 87 120 152 167 180 1024)
+# 	# 遍历
+# 	for item in "${icon_array[@]}";
+# 	do 
+# 		sips -Z "$item" "$icon_image_name" --out IconFolder/AppIcon_"$item"x"$item".png
+# 	done
+	
+	# 此处尺寸数组和命名数组一一对应；
+# 	icon_array=(20 40 60 29 58 87 40 80 120 57 114 60 120 180 72 144 76 152 228 167 50 100 1024)
+	# 以数字开头的命名，前面要加前缀："Icon-App-";非数字开头的直接命名	
+# 	icon_nameArray=(20x20@1x 20x20@2x 20x20@3x 29x29@1x 29x29@2x 29x29@3x 40x40@1x 40x40@2x 40x40@3x 57x57@1x 57x57@2x 60x60@1x 60x60@2x 60x60@3x 72x72@1x 72x72@2x 76x76@1x 76x76@2x 76x76@3x 83.5x83.5@2x Icon-Small-50x50@1x Icon-Small-50x50@2x iTunesArtwork@2x)
+	
+# 	先处理@1x @2x(其中50需单独命名)；再处理@3x；最后处理特殊；
+
+	# @1x @2x
+	iOSIconSizeList='20 29 40 50 57 60 72 76 83.5 512'
+	iOSIconTypeList='1 2'
+	for iconType in ${iOSIconTypeList} ;do
+		for iconSize in ${iOSIconSizeList} ;do
+			iconActualSize=$iconSize;
+			destFolder=${iconiOSFolder}
+			if [ ${iconSize} == '83.5' ] && [ ${iconType} == '1' ] ;then
+				echo 不需要这个文件:Icon-App-${iconSize}x${iconSize}@${iconType}x.png
+				continue;
+			else
+				iconActualSize=`echo "scale=0;${iconSize} * ${iconType}" | bc `		#按小数相乘，得到实际尺寸(值可能有小数)
+				iconActualSize=`echo ${iconActualSize}|sed "s/\..*//g"`				#去掉小数,取整
+				iconName=Icon-App-${iconSize}x${iconSize}@${iconType}x
+				
+				if [ $iconSize == '50' ] ;then	#这个size文件的源文件名不一样
+					iconName=Icon-Small-${iconSize}x${iconSize}@${iconType}x
+				elif [ $iconSize == '512' ] ;then	#这个size文件的源文件名不一样
+					iconName=iTunesArtwork@${iconType}x
+					destFolder=${iconRootFolder}
+				fi
+				
+				echo iconType:$iconType	iconActualSize:$iconActualSize	iconName:$iconName
+				sips -Z "$iconActualSize" "$icon_image_name" --out ${destFolder}/${iconName}.png
+			fi
+		done
 	done
+	
+	# @3x
+	iOSIconSize3List='20 29 40 60 76 512'
+	iOSIconType3='3'
+	for iconType in ${iOSIconType3} ;do
+		for iconSize in ${iOSIconSize3List} ;do
+			iconActualSize=$iconSize;
+			destFolder=${iconiOSFolder}
+			
+			iconActualSize=$iconSize;
+			iconActualSize=`echo "scale=0;${iconSize} * ${iconType}" | bc `		#按小数相乘，得到实际尺寸(值可能有小数)
+			iconActualSize=`echo ${iconActualSize}|sed "s/\..*//g"`				#去掉小数，取整
+			iconName=Icon-App-${iconSize}x${iconSize}@${iconType}x
+			echo iconType:$iconType	iconActualSize:$iconActualSize	iconName:$iconName
+			if [ ${iconSize} == '512' ];then
+				iconName=iTunesArtwork@${iconType}x
+				destFolder=${iconRootFolder}
+			fi
+			sips -Z "$iconActualSize" "$icon_image_name" --out ${destFolder}/${iconName}.png
+			
+		done
+	done
+	
+	# @特殊 1024 iTunesArtwork@2x
+	sips -Z "1024" "$icon_image_name" --out ${iconiOSFolder}/iTunesArtwork@2x.png
+	
 }
 
 #>>>>>>>>>>>>>>>>>>>>>>>一键生成App启动图片LaunchImage<<<<<<<<<<<<<<<<<<<<<<<<
